@@ -3,6 +3,8 @@
   "target": {
     "namespace": "android_app",
     "package_name": "io.github.nattyvarella_hub.twa",
-    "sha256_cert_fingerprints":  AF:7A:5B:67:F3:22:EF:5C:84:75:4A:B9:70:DF:C5:0E:F7:3B:82:1C:8C:FB:09:9D:86:34:56:D3:22:79:59:14
+    "sha256_cert_fingerprints": [
+      "AF:7A:5B:67:F3:22:EF:5C:84:75:4A:B9:70:DF:C5:0E:F7:3B:82:1C:8C:FB:09:9D:86:34:56:D3:22:79:59:14"
+    ]
   }
 }]
