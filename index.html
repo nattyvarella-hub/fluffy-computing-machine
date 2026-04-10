@@ -810,5 +810,41 @@ function downloadSVG() {
   }, 200);
 }
 </script>
+  <script>
+// Registro do Service Worker para PWA
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js')
+      .then((registration) => {
+        console.log('[PWA] Service Worker registrado:', registration.scope);
+      })
+      .catch((error) => {
+        console.error('[PWA] Falha ao registrar SW:', error);
+      });
+  });
+}
+
+// PWA Install handling
+let deferredPrompt = null;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  const installBtn = document.getElementById('install-btn');
+  if (installBtn) installBtn.style.display = 'inline-flex';
+});
+
+async function installPWA() {
+  if (!deferredPrompt) {
+    if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
+      alert('Para instalar no iOS:\n1. Toque em Compartilhar (↑)\n2. Selecione "Adicionar à Tela de Início"');
+    }
+    return;
+  }
+  deferredPrompt.prompt();
+  const { outcome } = await deferredPrompt.userChoice;
+  deferredPrompt = null;
+  document.getElementById('install-btn').style.display = 'none';
+}
+</script>
 </body>
 </html>
