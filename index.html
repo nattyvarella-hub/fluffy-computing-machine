@@ -3,7 +3,17 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1a1a2e">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="PRISMA Flow">
+<meta name="application-name" content="PRISMA Flow">
+<meta name="msapplication-TileColor" content="#1a1a2e">
+<meta name="msapplication-config" content="none">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon.png">
+
 <title>PRISMA — Revisão Integrativa</title>
 
 <script src="https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.1/dist/svg-pan-zoom.min.js"></script>
@@ -235,7 +245,12 @@
   <div>
     <h1>PRISMA Flow</h1>
     <p>Revisão Integrativa da Literatura · Gerador de Fluxograma</p>
-  </div>
+  
+  <button id="install-btn" class="btn btn-gold btn-sm" style="margin-left:auto; display:none;" onclick="installPWA()">
+    📲 Instalar App
+  </button>
+
+</div>
 </header>
 
 <nav class="tabs">
@@ -810,41 +825,148 @@ function downloadSVG() {
   }, 200);
 }
 </script>
-  <script>
+
+<script>
 // Registro do Service Worker para PWA
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/sw.js')
       .then((registration) => {
-        console.log('[PWA] Service Worker registrado:', registration.scope);
+        console.log('[PWA] Service Worker registrado com sucesso:', registration.scope);
+
+        // Verifica atualizações periodicamente
+        registration.addEventListener('updatefound', () => {
+          const newWorker = registration.installing;
+          newWorker.addEventListener('statechange', () => {
+            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+              console.log('[PWA] Nova versão disponível!');
+              // Opcional: Notificar usuário sobre atualização
+            }
+          });
+        });
       })
       .catch((error) => {
-        console.error('[PWA] Falha ao registrar SW:', error);
+        console.error('[PWA] Falha ao registrar Service Worker:', error);
       });
+  });
+
+  // Listener para mensagens do SW (ex: atualização disponível)
+  navigator.serviceWorker.addEventListener('message', (event) => {
+    if (event.data === 'update-available') {
+      console.log('[PWA] Atualização disponível! Recarregue para atualizar.');
+    }
   });
 }
 
-// PWA Install handling
+
+// ============================================================
+// PWA INSTALLATION HANDLING
+// ============================================================
 let deferredPrompt = null;
+
 window.addEventListener('beforeinstallprompt', (e) => {
+  // Previne o prompt automático do navegador
   e.preventDefault();
+  // Salva o evento para usar depois
   deferredPrompt = e;
+  // Mostra o botão de instalação
   const installBtn = document.getElementById('install-btn');
-  if (installBtn) installBtn.style.display = 'inline-flex';
+  if (installBtn) {
+    installBtn.style.display = 'inline-flex';
+    console.log('[PWA] App pronto para instalação');
+  }
+});
+
+window.addEventListener('appinstalled', () => {
+  console.log('[PWA] App instalado com sucesso!');
+  // Esconde o botão após instalação
+  const installBtn = document.getElementById('install-btn');
+  if (installBtn) {
+    installBtn.style.display = 'none';
+  }
+  deferredPrompt = null;
+
+  // Opcional: Mostrar mensagem de sucesso
+  showNotification('PRISMA Flow instalado! Acesse pela tela inicial.');
 });
 
 async function installPWA() {
   if (!deferredPrompt) {
-    if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
-      alert('Para instalar no iOS:\n1. Toque em Compartilhar (↑)\n2. Selecione "Adicionar à Tela de Início"');
+    console.log('[PWA] Navegador não suporta instalação ou app já instalado');
+    // Para iOS/Safari, mostra instruções manuais
+    if (/iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream) {
+      alert('Para instalar no iOS:\n1. Toque no botão Compartilhar (\u2191)\n2. Selecione "Adicionar à Tela de Início"');
     }
     return;
   }
+
+  // Mostra o prompt de instalação
   deferredPrompt.prompt();
+
+  // Aguarda a escolha do usuário
   const { outcome } = await deferredPrompt.userChoice;
+  console.log(`[PWA] Usuário ${outcome === 'accepted' ? 'aceitou' : 'recusou'} a instalação`);
+
+  // Limpa o evento (só pode ser usado uma vez)
   deferredPrompt = null;
-  document.getElementById('install-btn').style.display = 'none';
+
+  // Esconde o botão
+  const installBtn = document.getElementById('install-btn');
+  if (installBtn) {
+    installBtn.style.display = 'none';
+  }
 }
+
+// Verifica se já está rodando como PWA instalado
+function isRunningStandalone() {
+  return (window.matchMedia('(display-mode: standalone)').matches) ||
+         (window.navigator.standalone) || // iOS
+         document.referrer.includes('android-app://');
+}
+
+// Mostra notificação toast
+function showNotification(message) {
+  const toast = document.createElement('div');
+  toast.style.cssText = `
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--sage);
+    color: white;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    z-index: 10000;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    animation: slideUp 0.3s ease;
+  `;
+  toast.textContent = message;
+  document.body.appendChild(toast);
+
+  setTimeout(() => {
+    toast.style.animation = 'slideDown 0.3s ease';
+    setTimeout(() => toast.remove(), 300);
+  }, 3000);
+}
+
+// Adiciona animações CSS dinamicamente
+const style = document.createElement('style');
+style.textContent = `
+  @keyframes slideUp {
+    from { transform: translate(-50%, 100px); opacity: 0; }
+    to { transform: translate(-50%, 0); opacity: 1; }
+  }
+  @keyframes slideDown {
+    from { transform: translate(-50%, 0); opacity: 1; }
+    to { transform: translate(-50%, 100px); opacity: 0; }
+  }
+`;
+document.head.appendChild(style);
+
+console.log('[PWA] Sistema de instalação inicializado');
+console.log('[PWA] Modo standalone:', isRunningStandalone());
+
 </script>
 </body>
 </html>
